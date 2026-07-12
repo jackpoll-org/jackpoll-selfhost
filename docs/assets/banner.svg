@@ -1,0 +1,54 @@
+<svg width="1280" height="320" viewBox="0 0 1280 320" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Jackpoll — Open-source surveys and quizzes">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#024DB2"/>
+      <stop offset="1" stop-color="#4987D9"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.04"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect width="1280" height="320" rx="20" fill="url(#bg)"/>
+
+  <!-- subtle decorative dots -->
+  <g fill="#ffffff" opacity="0.06">
+    <circle cx="1120" cy="60" r="140"/>
+    <circle cx="1230" cy="250" r="90"/>
+  </g>
+
+  <!-- poll / bar-chart mark -->
+  <g transform="translate(96 96)">
+    <rect x="0" y="0" width="128" height="128" rx="24" fill="url(#fade)" stroke="#ffffff" stroke-opacity="0.25"/>
+    <g transform="translate(28 30)">
+      <rect x="0"  y="44" width="14" height="28" rx="4" fill="#ffffff" opacity="0.75"/>
+      <rect x="26" y="24" width="14" height="48" rx="4" fill="#ffffff"/>
+      <rect x="52" y="8"  width="14" height="64" rx="4" fill="#ffffff" opacity="0.9"/>
+    </g>
+    <circle cx="98" cy="34" r="9" fill="#ffffff"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="264" y="150" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="72" font-weight="800" fill="#ffffff" letter-spacing="-1">Jackpoll</text>
+
+  <!-- tagline -->
+  <text x="266" y="196" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#ffffff" opacity="0.9">Open-source surveys &amp; quizzes — build, share, analyze.</text>
+
+  <!-- tech chips -->
+  <g font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="600" fill="#ffffff">
+    <g transform="translate(266 226)">
+      <rect x="0" y="0" width="112" height="40" rx="20" fill="#ffffff" fill-opacity="0.14"/>
+      <text x="56" y="27" text-anchor="middle">Quarkus</text>
+    </g>
+    <g transform="translate(390 226)">
+      <rect x="0" y="0" width="112" height="40" rx="20" fill="#ffffff" fill-opacity="0.14"/>
+      <text x="56" y="27" text-anchor="middle">Java 21</text>
+    </g>
+    <g transform="translate(514 226)">
+      <rect x="0" y="0" width="128" height="40" rx="20" fill="#ffffff" fill-opacity="0.14"/>
+      <text x="64" y="27" text-anchor="middle">Postgres</text>
+    </g>
+  </g>
+</svg>

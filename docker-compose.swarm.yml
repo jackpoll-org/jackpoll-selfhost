@@ -1,0 +1,368 @@
+# Docker Swarm stack for Jackpoll — APP ONLY (frontend + backend + infra).
+#
+# This is the app-only variant: it does NOT include the landing page. Use it when
+# the landing (jackpoll.org) is deployed as its own stack.
+#
+# Routing: the frontend is published through an existing Traefik on the shared
+# external `traefik` network (TLS via the `le-prod` cert resolver). NO service
+# publishes a host port, so this stack never collides with other stacks' ingress
+# ports. Backend, DB, MinIO, Keycloak and Mailpit stay on a private overlay.
+#
+# Prefer a single machine with no Traefik? Use docker-compose.simple.yml instead.
+#
+# Deploy:
+#   docker swarm init                       # once, on the manager
+#   set -a; . ./.env.swarm; set +a          # load variables into the shell
+#   docker stack deploy -c docker-compose.swarm.yml survey
+#
+# Notes:
+#   * `docker stack deploy` ignores `env_file`; variables are interpolated from
+#     the shell environment (hence the `set -a; . ./.env.swarm` step above).
+#   * Secrets (#49) are external Swarm secrets — create them in Portainer first.
+
+x-restart: &restart
+  restart_policy:
+    condition: any
+    delay: 5s
+    window: 120s
+
+services:
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/madebyleopold/survey-frontend:latest}
+    environment:
+      NODE_ENV: production
+      # The Next server (proxy + Server Components) reaches the backend over the
+      # private overlay. The browser always uses the same-origin /api proxy.
+      NEXT_PUBLIC_API_URL: http://backend:8080
+      # Live co-editing (#85) — off by default; set true to enable presence +
+      # real-time builder collaboration (needs the /collab-ws Traefik route).
+      COLLAB_ENABLED: ${COLLAB_ENABLED:-false}
+      # Live-results push (wordcloud / presentation) — on by default; set false
+      # to disable the /results-ws socket and fall back to 15s polling.
+      LIVE_RESULTS_ENABLED: ${LIVE_RESULTS_ENABLED:-true}
+    networks: [traefik, internal]
+    deploy:
+      mode: replicated
+      replicas: ${FRONTEND_REPLICAS:-2}
+      <<: *restart
+      update_config: { order: start-first, parallelism: 1, delay: 10s, failure_action: rollback }
+      resources:
+        limits: { cpus: "1.0", memory: 512M }
+      labels:
+        - "traefik.enable=true"
+        - "traefik.swarm.network=traefik"
+        # HTTPS router. Explicit low priority so this catch-all Host rule never
+        # shadows the /collab-ws and /results-ws WebSocket routers (priority 100)
+        # on the backend service — otherwise the WS upgrade hits Next and gets a
+        # 307 → /login, which hangs the socket (see collab-ws-path-split).
+        - "traefik.http.routers.survey-frontend.rule=Host(`${FRONTEND_HOST:-app.jackpoll.org}`)"
+        - "traefik.http.routers.survey-frontend.priority=1"
+        - "traefik.http.routers.survey-frontend.entrypoints=websecure"
+        - "traefik.http.routers.survey-frontend.tls=true"
+        - "traefik.http.routers.survey-frontend.tls.certresolver=le-prod"
+        - "traefik.http.services.survey-frontend.loadbalancer.server.port=3000"
+        # HTTP -> HTTPS redirect
+        - "traefik.http.routers.survey-frontend-http.rule=Host(`${FRONTEND_HOST:-app.jackpoll.org}`)"
+        - "traefik.http.routers.survey-frontend-http.entrypoints=web"
+        - "traefik.http.routers.survey-frontend-http.middlewares=redirect-to-https"
+        - "traefik.http.routers.survey-frontend-http.service=noop@internal"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+  backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/madebyleopold/survey-backend:latest}
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-survey}
+      DB_USERNAME: ${DB_USERNAME:-survey}
+      # Secrets (#49) are mounted as files; the image entrypoint exports
+      # FOO_FILE → FOO. Create these in Portainer (Swarm → Secrets) first.
+      DB_PASSWORD_FILE: /run/secrets/survey_db_password
+      # Schema is managed by Flyway (issue #41): migrations run at startup and
+      # Hibernate only validates — no DB_GENERATION needed in prod.
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY_FILE: /run/secrets/survey_minio_secret
+      MINIO_BUCKET: ${MINIO_BUCKET:-survey-uploads}
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-survey-school}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-survey-backend}
+      KEYCLOAK_CLIENT_SECRET_FILE: /run/secrets/survey_keycloak_client_secret
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      # Email (#48): defaults to the bundled Mailpit. For production set
+      # MAIL_HOST to a real SMTP server + MAIL_USERNAME/MAIL_PASSWORD/MAIL_TLS.
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_TLS: ${MAIL_TLS:-DISABLED}
+      MAIL_MOCK: "false"
+      MAIL_FROM: ${MAIL_FROM:-Survey School <noreply@surveyschool.test>}
+      APP_BASE_URL: ${APP_BASE_URL:-https://app.jackpoll.org}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://app.jackpoll.org}
+      # Open-source Supporters (tiered sponsorship) — the only payment surface.
+      # MOLLIE_API_KEY is a server-only secret (test_ in staging, live_ in prod).
+      # Mollie redirects back to the landing; the webhook must reach the backend.
+      MOLLIE_API_KEY: ${MOLLIE_API_KEY:-}
+      LANDING_BASE_URL: ${LANDING_BASE_URL:-https://jackpoll.org}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-https://api.jackpoll.org}
+      SURVEY_SPAM_SECRET_FILE: /run/secrets/survey_spam_secret
+      # Distributed rate limiting (#42) — shared across backend replicas via Redis.
+      RATE_LIMIT_BACKEND: ${RATE_LIMIT_BACKEND:-redis}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      # Upload virus scanning (#43) — set CLAMAV_ENABLED=true AND CLAMAV_REPLICAS=1.
+      CLAMAV_ENABLED: ${CLAMAV_ENABLED:-false}
+      CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      CLAMAV_FAIL_OPEN: ${CLAMAV_FAIL_OPEN:-false}
+      # Native push notifications (mobile app) — FCM HTTP v1. Needs a Firebase
+      # service account (inline JSON or a path to a mounted secret file).
+      PUSH_ENABLED: ${PUSH_ENABLED:-false}
+      FCM_SERVICE_ACCOUNT: ${FCM_SERVICE_ACCOUNT:-}
+      # Web Push for browsers / PWA (#74) — VAPID keys (generate once with
+      # `npx web-push generate-vapid-keys`). Web Push works as soon as both keys
+      # are set; no PUSH_ENABLED needed. The private key is sensitive: for a
+      # stricter setup use VAPID_PRIVATE_KEY_FILE with a Swarm secret instead
+      # (docker-entrypoint.sh exports any *_FILE → the base var).
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:contact@quavon.de}
+    networks: [internal, traefik]
+    secrets:
+      - survey_db_password
+      - survey_minio_secret
+      - survey_keycloak_client_secret
+      - survey_spam_secret
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/q/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    deploy:
+      mode: replicated
+      replicas: ${BACKEND_REPLICAS:-2}
+      <<: *restart
+      update_config: { order: start-first, parallelism: 1, delay: 10s, failure_action: rollback }
+      resources:
+        limits: { cpus: "1.5", memory: 768M }
+      labels:
+        # Live co-editing WebSocket (#85): only the /collab-ws path is exposed
+        # publicly; everything else stays behind the Next /api proxy. The prefix
+        # is /collab-ws (NOT /collab) so it does not shadow the frontend's
+        # /collab/[slug] passwordless edit page, which must reach Next.js.
+        # Cross-replica fan-out is handled via Redis, so no sticky sessions needed.
+        - "traefik.enable=true"
+        - "traefik.swarm.network=traefik"
+        - "traefik.http.routers.survey-collab.rule=Host(`${FRONTEND_HOST:-app.jackpoll.org}`) && PathPrefix(`/collab-ws`)"
+        - "traefik.http.routers.survey-collab.entrypoints=websecure"
+        - "traefik.http.routers.survey-collab.tls=true"
+        - "traefik.http.routers.survey-collab.tls.certresolver=le-prod"
+        - "traefik.http.routers.survey-collab.priority=100"
+        # This backend container defines TWO Traefik services (collab + results),
+        # so each router MUST name its service explicitly — otherwise Traefik
+        # refuses to auto-link ("cannot be linked automatically with multiple
+        # Services") and drops the router, sending /collab-ws to Next (307→/login).
+        - "traefik.http.routers.survey-collab.service=survey-collab"
+        - "traefik.http.services.survey-collab.loadbalancer.server.port=8080"
+        # Live-results WebSocket (wordcloud / presentation): same split as
+        # /collab-ws — the /results-ws prefix reaches the backend directly so a
+        # new response pings open results viewers. Cross-replica fan-out via Redis.
+        - "traefik.http.routers.survey-results.rule=Host(`${FRONTEND_HOST:-app.jackpoll.org}`) && PathPrefix(`/results-ws`)"
+        - "traefik.http.routers.survey-results.entrypoints=websecure"
+        - "traefik.http.routers.survey-results.tls=true"
+        - "traefik.http.routers.survey-results.tls.certresolver=le-prod"
+        - "traefik.http.routers.survey-results.priority=100"
+        - "traefik.http.routers.survey-results.service=survey-results"
+        - "traefik.http.services.survey-results.loadbalancer.server.port=8080"
+        # Public Mollie webhook (api.jackpoll.org) so subscription renewals sync.
+        # ONLY the webhook path is exposed publicly; the rest of the API stays
+        # internal (the app reaches it over the overlay as backend:8080). This
+        # container defines multiple Traefik services, so the router MUST name
+        # its service explicitly. TLS via the shared le-prod cert resolver.
+        - "traefik.http.routers.survey-webhook.rule=Host(`${API_HOST:-api.jackpoll.org}`) && PathPrefix(`/api/v1/supporters/webhook`)"
+        - "traefik.http.routers.survey-webhook.entrypoints=websecure"
+        - "traefik.http.routers.survey-webhook.tls=true"
+        - "traefik.http.routers.survey-webhook.tls.certresolver=le-prod"
+        - "traefik.http.routers.survey-webhook.priority=100"
+        - "traefik.http.routers.survey-webhook.service=survey-webhook"
+        - "traefik.http.services.survey-webhook.loadbalancer.server.port=8080"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-survey}
+      POSTGRES_PASSWORD_FILE: /run/secrets/survey_db_password
+      POSTGRES_DB: ${DB_NAME:-survey}
+    networks: [internal]
+    secrets:
+      - survey_db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-survey} -d ${DB_NAME:-survey}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    deploy:
+      replicas: 1
+      <<: *restart
+      placement:
+        constraints: [node.role == manager] # pin stateful services to a stable node
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/survey_minio_secret
+    networks: [internal]
+    secrets:
+      - survey_minio_secret
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    deploy:
+      replicas: 1
+      <<: *restart
+      placement:
+        constraints: [node.role == manager]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    # Production mode (#47) + secrets (#49): load the DB password and the client
+    # secret (which the realm import substitutes) from mounted files before
+    # starting. `$$(` escapes compose interpolation so the shell expands it.
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >
+        export KC_DB_PASSWORD="$$(cat /run/secrets/survey_db_password)";
+        export KEYCLOAK_CLIENT_SECRET="$$(cat /run/secrets/survey_keycloak_client_secret)";
+        exec /opt/keycloak/bin/kc.sh start --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-survey}
+      KC_DB_USERNAME: ${DB_USERNAME:-survey}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      # Public issuer used for tokens / browser OIDC redirects (Traefik below).
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-https://auth.jackpoll.org}
+      # Keep server-to-server calls (backend → keycloak:8080) on the internal
+      # network: backchannel discovery URLs follow the request host while the
+      # token issuer stays KC_HOSTNAME. So the backend needs no public hairpin
+      # and its OIDC bearer validation still matches the public issuer.
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_PORT: "8080"
+    networks: [internal, traefik]
+    secrets:
+      - survey_db_password
+      - survey_keycloak_client_secret
+    # The realm is imported from this Docker config on first boot. The file name
+    # MUST match the realm ("<realm>-realm.json").
+    configs:
+      - source: keycloak_realm_v2
+        target: /opt/keycloak/data/import/survey-school-realm.json
+    deploy:
+      replicas: 1
+      <<: *restart
+      placement:
+        constraints: [node.role == manager]
+      labels:
+        - "traefik.enable=true"
+        - "traefik.swarm.network=traefik"
+        # HTTPS router
+        - "traefik.http.routers.survey-keycloak.rule=Host(`${KEYCLOAK_HOST:-auth.jackpoll.org}`)"
+        - "traefik.http.routers.survey-keycloak.entrypoints=websecure"
+        - "traefik.http.routers.survey-keycloak.tls=true"
+        - "traefik.http.routers.survey-keycloak.tls.certresolver=le-prod"
+        - "traefik.http.services.survey-keycloak.loadbalancer.server.port=8080"
+        # HTTP -> HTTPS redirect (reuses the frontend's redirect middleware)
+        - "traefik.http.routers.survey-keycloak-http.rule=Host(`${KEYCLOAK_HOST:-auth.jackpoll.org}`)"
+        - "traefik.http.routers.survey-keycloak-http.entrypoints=web"
+        - "traefik.http.routers.survey-keycloak-http.middlewares=redirect-to-https"
+        - "traefik.http.routers.survey-keycloak-http.service=noop@internal"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+  # Redis for distributed rate limiting (#42). Shared by all backend replicas
+  # so the per-IP/survey submission limit is enforced globally.
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    deploy:
+      replicas: 1
+      <<: *restart
+      placement:
+        constraints: [node.role == manager]
+
+  # Optional antivirus for uploads (#43). Off by default (replicas 0). To enable:
+  # set CLAMAV_REPLICAS=1 AND CLAMAV_ENABLED=true. First boot downloads virus
+  # definitions and needs ~2 GB RAM.
+  clamav:
+    image: clamav/clamav:latest
+    networks: [internal]
+    deploy:
+      replicas: ${CLAMAV_REPLICAS:-0}
+      <<: *restart
+      placement:
+        constraints: [node.role == manager]
+      resources:
+        limits: { memory: 2G }
+
+  mailpit:
+    image: axllent/mailpit:latest
+    # Internal only; swap for a real SMTP server in production. To view the UI,
+    # add it to the `traefik` network with a Host router like the frontend.
+    networks: [internal]
+    deploy:
+      replicas: 1
+      <<: *restart
+
+configs:
+  # Swarm configs are immutable — bump the key (…_v2, _v3) whenever the realm
+  # file changes, otherwise `docker stack deploy` fails with
+  # "only updates to Labels are allowed".
+  keycloak_realm_v2:
+    # Realm source-of-truth is survey-backend/src/main/keycloak; this repo keeps
+    # a synced copy under ./keycloak (see .github/workflows/sync-realm.yml).
+    file: ./keycloak/survey-school-realm.json
+
+# Secrets (#49) — create these once in Portainer (Swarm → Secrets) with the
+# exact names below, then deploy. `external: true` means Docker/Portainer owns
+# the value; it never lives in this file or in .env.swarm.
+secrets:
+  survey_db_password:
+    external: true
+  survey_minio_secret:
+    external: true
+  survey_keycloak_client_secret:
+    external: true
+  survey_spam_secret:
+    external: true
+
+networks:
+  traefik:
+    external: true # the shared Traefik ingress network already on the host
+  internal:
+    driver: overlay # private to the stack; no host port is published anywhere
+
+volumes:
+  pgdata:
+  miniodata:
