@@ -28,7 +28,7 @@ x-restart: &restart
 
 services:
   frontend:
-    image: ${FRONTEND_IMAGE:-ghcr.io/madebyleopold/survey-frontend:latest}
+    image: ${FRONTEND_IMAGE:-ghcr.io/jackpoll-org/frontend:latest}
     environment:
       NODE_ENV: production
       # The Next server (proxy + Server Components) reaches the backend over the
@@ -69,7 +69,7 @@ services:
         - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
   backend:
-    image: ${BACKEND_IMAGE:-ghcr.io/madebyleopold/survey-backend:latest}
+    image: ${BACKEND_IMAGE:-ghcr.io/jackpoll-org/backend:latest}
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -340,8 +340,8 @@ configs:
   # file changes, otherwise `docker stack deploy` fails with
   # "only updates to Labels are allowed".
   keycloak_realm_v2:
-    # Realm source-of-truth is survey-backend/src/main/keycloak; this repo keeps
-    # a synced copy under ./keycloak (see .github/workflows/sync-realm.yml).
+    # Realm source-of-truth is the jackpoll monorepo (apps/backend/src/main/keycloak);
+    # this repo keeps a synced copy under ./keycloak (see .github/workflows/sync-realm.yml).
     file: ./keycloak/survey-school-realm.json
 
 # Secrets (#49) — create these once in Portainer (Swarm → Secrets) with the

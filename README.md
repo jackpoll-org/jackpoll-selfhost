@@ -12,8 +12,8 @@
 
 <p align="center">
   <a href="SELF_HOSTING.md"><b>📖 Step-by-step guide</b></a> ·
-  <a href="https://github.com/MadebyLeopold/survey-backend">Backend</a> ·
-  <a href="https://github.com/MadebyLeopold/survey-frontend">Frontend</a>
+  <a href="https://github.com/jackpoll-org/jackpoll/tree/main/apps/backend">Backend</a> ·
+  <a href="https://github.com/jackpoll-org/jackpoll/tree/main/apps/frontend">Frontend</a>
 </p>
 
 ---
@@ -26,7 +26,7 @@ Registry.
 ## Quick start (single host)
 
 ```bash
-git clone https://github.com/MadebyLeopold/jackpoll-selfhost.git
+git clone https://github.com/jackpoll-org/jackpoll-selfhost.git
 cd jackpoll-selfhost
 cp .env.simple.example .env          # then edit: replace every CHANGE_ME
 docker compose -f docker-compose.simple.yml up -d
@@ -49,8 +49,8 @@ your own domain and TLS, is in **[SELF_HOSTING.md](SELF_HOSTING.md)**.
 
 | Service | Image | Purpose |
 |---|---|---|
-| frontend | `ghcr.io/madebyleopold/survey-frontend` | Next.js web app |
-| backend | `ghcr.io/madebyleopold/survey-backend` | Quarkus REST API |
+| frontend | `ghcr.io/jackpoll-org/frontend` | Next.js web app |
+| backend | `ghcr.io/jackpoll-org/backend` | Quarkus REST API |
 | postgres | `postgres:16-alpine` | Primary datastore |
 | minio | `minio/minio` | File / image uploads (S3) |
 | keycloak | `quay.io/keycloak/keycloak:26.2` | Authentication (OIDC) |
@@ -65,14 +65,14 @@ your own domain and TLS, is in **[SELF_HOSTING.md](SELF_HOSTING.md)**.
 ├── docker-compose.swarm.yml    # Swarm + Traefik stack (external secrets)
 ├── .env.simple.example         # config for the simple stack
 ├── .env.swarm.example          # config for the Swarm stack
-├── keycloak/                   # imported realm (synced from survey-backend)
+├── keycloak/                   # imported realm (synced from the jackpoll backend)
 ├── docs/assets/                # banner + logo
 └── SELF_HOSTING.md             # the full guide
 ```
 
-> The Keycloak realm's source of truth is
-> [`survey-backend`](https://github.com/MadebyLeopold/survey-backend); the copy
-> here is kept in sync by `.github/workflows/sync-realm.yml`.
+> The Keycloak realm's source of truth is the
+> [jackpoll monorepo](https://github.com/jackpoll-org/jackpoll/tree/main/apps/backend/src/main/keycloak);
+> the copy here is kept in sync by `.github/workflows/sync-realm.yml`.
 
 ## License
 

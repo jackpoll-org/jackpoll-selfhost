@@ -1,12 +1,12 @@
 name: Sync Keycloak realm
 
 # Keeps keycloak/survey-school-realm.json in sync with the source-of-truth copy
-# in the survey-backend repo. Runs on a schedule and on manual dispatch; opens a
-# PR here whenever the backend realm changes.
+# in the jackpoll monorepo (apps/backend). Runs on a schedule and on manual
+# dispatch; opens a PR here whenever the backend realm changes.
 #
 # SETUP: add a repository secret `BACKEND_REPO_TOKEN` — a fine-grained PAT with
-# read access to MadebyLeopold/survey-backend (contents: read). Without it the
-# checkout of a private backend repo will fail.
+# read access to jackpoll-org/jackpoll (contents: read). Without it the checkout
+# of a private repo will fail.
 
 on:
   workflow_dispatch:
@@ -27,23 +27,23 @@ jobs:
       - name: Checkout backend realm
         uses: actions/checkout@v4
         with:
-          repository: MadebyLeopold/survey-backend
+          repository: jackpoll-org/jackpoll
           token: ${{ secrets.BACKEND_REPO_TOKEN }}
-          path: .backend
-          sparse-checkout: src/main/keycloak/survey-school-realm.json
+          path: .monorepo
+          sparse-checkout: apps/backend/src/main/keycloak/survey-school-realm.json
           sparse-checkout-cone-mode: false
 
       - name: Copy realm
-        run: cp .backend/src/main/keycloak/survey-school-realm.json keycloak/survey-school-realm.json
+        run: cp .monorepo/apps/backend/src/main/keycloak/survey-school-realm.json keycloak/survey-school-realm.json
 
       - name: Open PR on change
         uses: peter-evans/create-pull-request@v6
         with:
           add-paths: keycloak/survey-school-realm.json
           branch: chore/sync-realm
-          title: "chore: sync Keycloak realm from survey-backend"
-          commit-message: "chore: sync Keycloak realm from survey-backend"
+          title: "chore: sync Keycloak realm from jackpoll backend"
+          commit-message: "chore: sync Keycloak realm from jackpoll backend"
           body: |
             Automated sync of `keycloak/survey-school-realm.json` from
-            `MadebyLeopold/survey-backend` (`src/main/keycloak`).
+            `jackpoll-org/jackpoll` (`apps/backend/src/main/keycloak`).
           delete-branch: true

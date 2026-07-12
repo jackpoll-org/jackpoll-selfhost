@@ -25,7 +25,7 @@ email). This guide covers two deployment paths:
 ### 1. Clone
 
 ```bash
-git clone https://github.com/MadebyLeopold/jackpoll-selfhost.git
+git clone https://github.com/jackpoll-org/jackpoll-selfhost.git
 cd jackpoll-selfhost
 ```
 
@@ -173,8 +173,8 @@ docker compose -f docker-compose.simple.yml pull
 docker compose -f docker-compose.simple.yml up -d
 
 # Path B
-docker service update --image ghcr.io/madebyleopold/survey-backend:<tag>  survey_backend
-docker service update --image ghcr.io/madebyleopold/survey-frontend:<tag> survey_frontend
+docker service update --image ghcr.io/jackpoll-org/backend:<tag>  survey_backend
+docker service update --image ghcr.io/jackpoll-org/frontend:<tag> survey_frontend
 ```
 
 Pin `FRONTEND_IMAGE` / `BACKEND_IMAGE` to a release tag (not `:latest`) for
