@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="Jackpoll — Open-source surveys and quizzes" width="100%" />
+  <img src="docs/assets/banner.png" alt="Jackpoll — Open-source surveys and quizzes" width="100%" />
 </p>
 
 <p align="center">
