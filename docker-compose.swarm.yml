@@ -335,6 +335,31 @@ services:
       replicas: 1
       <<: *restart
 
+  # Optional UnifiedPush server (ntfy) so the mobile app can receive push on this
+  # instance without Google (needed for the F-Droid app). OFF by default; enable
+  # with NTFY_REPLICAS=1 and point the app's push distributor at https://NTFY_HOST.
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    command: serve
+    environment:
+      NTFY_BASE_URL: https://${NTFY_HOST:-ntfy.example.com}
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_AUTH_DEFAULT_ACCESS: "read-write"
+    volumes:
+      - ntfydata:/var/lib/ntfy
+    networks: [traefik, internal]
+    deploy:
+      replicas: ${NTFY_REPLICAS:-0}
+      <<: *restart
+      labels:
+        - "traefik.enable=true"
+        - "traefik.swarm.network=traefik"
+        - "traefik.http.routers.jackpoll-ntfy.rule=Host(`${NTFY_HOST:-ntfy.example.com}`)"
+        - "traefik.http.routers.jackpoll-ntfy.entrypoints=websecure"
+        - "traefik.http.routers.jackpoll-ntfy.tls=true"
+        - "traefik.http.routers.jackpoll-ntfy.tls.certresolver=le-prod"
+        - "traefik.http.services.jackpoll-ntfy.loadbalancer.server.port=80"
+
 configs:
   # Swarm configs are immutable — bump the key (…_v2, _v3) whenever the realm
   # file changes, otherwise `docker stack deploy` fails with
@@ -366,3 +391,4 @@ networks:
 volumes:
   pgdata:
   miniodata:
+  ntfydata:

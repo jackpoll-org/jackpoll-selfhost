@@ -183,6 +183,24 @@ services:
       - "${MAILPIT_UI_PORT:-8025}:8025"
     networks: [internal]
 
+  # UnifiedPush server (ntfy) so the mobile app can receive push notifications on
+  # THIS instance — needed for the F-Droid app (no Google) and usable by the Play
+  # app too. In the app, set the push distributor to your ntfy URL
+  # (http://localhost:${NTFY_PORT} locally, or https://ntfy.your-domain in prod).
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    restart: *restart
+    command: serve
+    environment:
+      NTFY_BASE_URL: ${NTFY_BASE_URL:-http://localhost:8090}
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_AUTH_DEFAULT_ACCESS: "read-write"
+    volumes:
+      - ntfydata:/var/lib/ntfy
+    ports:
+      - "${NTFY_PORT:-8090}:80"
+    networks: [internal]
+
 networks:
   internal:
     driver: bridge
@@ -190,3 +208,4 @@ networks:
 volumes:
   pgdata:
   miniodata:
+  ntfydata:

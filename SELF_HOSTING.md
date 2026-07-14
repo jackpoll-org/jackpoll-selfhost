@@ -73,6 +73,7 @@ for this automatically).
 | Keycloak admin | http://localhost:8180 | Login `admin` / your `KEYCLOAK_ADMIN_PASSWORD` |
 | MinIO console | http://localhost:9001 | Login `minioadmin` / your `MINIO_SECRET_KEY` |
 | Mailpit (email) | http://localhost:8025 | Catches verification / reset emails |
+| ntfy (push) | http://localhost:8090 | UnifiedPush server for the mobile app |
 
 Register a user in the app — the verification email appears in Mailpit.
 
@@ -190,6 +191,24 @@ startup (Flyway).
   ```
 - **MinIO** — the `miniodata` volume holds uploaded images/files. Back up the
   volume or mirror the bucket with `mc mirror`.
+
+## Push notifications (UnifiedPush / ntfy)
+
+The mobile app receives push through **UnifiedPush**, and this stack bundles an
+**ntfy** server so your instance can deliver notifications with no Google
+dependency (this is the only option for the F-Droid build).
+
+- **Single host:** ntfy runs on port `8090` (`NTFY_PORT`). For real use, expose it
+  over HTTPS and set `NTFY_BASE_URL=https://ntfy.your-domain`.
+- **Swarm:** enable it with `NTFY_REPLICAS=1` and set `NTFY_HOST=ntfy.your-domain`
+  (needs a DNS record; Traefik gets the cert automatically).
+- **In the app:** open Settings → Debug (or push onboarding) and set the push
+  distributor to your ntfy URL. Backend push also needs the **VAPID** keys set
+  (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`); generate once with
+  `npx web-push generate-vapid-keys`.
+
+The Play-Store build can additionally fall back to a bundled Google FCM
+distributor, so ntfy is optional there but required for F-Droid users.
 
 ## Troubleshooting
 

@@ -56,6 +56,7 @@ your own domain and TLS, is in **[SELF_HOSTING.md](SELF_HOSTING.md)**.
 | keycloak | `quay.io/keycloak/keycloak:26.2` | Authentication (OIDC) |
 | redis | `redis:7-alpine` | Distributed rate limiting |
 | mailpit | `axllent/mailpit` | Dev email capture (swap for real SMTP) |
+| ntfy | `binwiederhier/ntfy` | UnifiedPush server for mobile push (no Google) |
 
 ## Repo layout
 
