@@ -35,7 +35,9 @@ instead, or they'll be overwritten on the next sync.
 
 Open a GitHub issue with your deployment path (simple/Swarm), Docker version,
 and the relevant logs (`docker compose logs <service>` or
-`docker service logs survey_<service>`).
+`docker service logs survey_<service>`). Add a screenshot or screen
+recording whenever possible, e.g. of the failing service, browser console, or
+Traefik dashboard — it's often faster to diagnose than logs alone.
 
 ## Security issues
 
