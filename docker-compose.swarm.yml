@@ -108,6 +108,7 @@ services:
       LANDING_BASE_URL: ${LANDING_BASE_URL:-https://jackpoll.org}
       PUBLIC_API_URL: ${PUBLIC_API_URL:-https://api.jackpoll.org}
       SURVEY_SPAM_SECRET_FILE: /run/secrets/survey_spam_secret
+      EMAIL_CODE_SECRET_FILE: /run/secrets/survey_email_code_secret
       # Distributed rate limiting (#42) — shared across backend replicas via Redis.
       RATE_LIMIT_BACKEND: ${RATE_LIMIT_BACKEND:-redis}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -134,6 +135,7 @@ services:
       - survey_minio_secret
       - survey_keycloak_client_secret
       - survey_spam_secret
+      - survey_email_code_secret
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/q/health/ready"]
       interval: 15s
@@ -380,6 +382,8 @@ secrets:
   survey_keycloak_client_secret:
     external: true
   survey_spam_secret:
+    external: true
+  survey_email_code_secret:
     external: true
 
 networks:

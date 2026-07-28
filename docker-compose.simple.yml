@@ -67,6 +67,7 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       SURVEY_SPAM_SECRET: ${SURVEY_SPAM_SECRET:?set SURVEY_SPAM_SECRET in .env.selfhost}
+      EMAIL_CODE_SECRET: ${EMAIL_CODE_SECRET:?set EMAIL_CODE_SECRET in .env.selfhost}
       RATE_LIMIT_BACKEND: ${RATE_LIMIT_BACKEND:-redis}
       REDIS_URL: redis://redis:6379
       CLAMAV_ENABLED: ${CLAMAV_ENABLED:-false}

@@ -44,6 +44,7 @@ Open `.env` and replace **every** `CHANGE_ME` with a strong, unique value:
 | `KEYCLOAK_CLIENT_SECRET` | OIDC client secret (backend ↔ Keycloak) | `openssl rand -base64 32` |
 | `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin console password | `openssl rand -base64 24` |
 | `SURVEY_SPAM_SECRET` | HMAC secret for spam/bot protection | `openssl rand -base64 32` |
+| `EMAIL_CODE_SECRET` | HMAC secret signing the at-rest hash of verification/reset codes | `openssl rand -base64 32` |
 
 The backend **refuses to boot** if any of these are left unset — there is no
 production fallback.
@@ -116,7 +117,7 @@ yours).
 
 ### 2. Create the external secrets
 
-Create these four Swarm secrets (Portainer → Swarm → Secrets, or the CLI). The
+Create these five Swarm secrets (Portainer → Swarm → Secrets, or the CLI). The
 names must match exactly:
 
 ```bash
@@ -124,6 +125,7 @@ printf '%s' 'STRONG_DB_PASSWORD'        | docker secret create survey_db_passwor
 printf '%s' 'STRONG_MINIO_SECRET'       | docker secret create survey_minio_secret -
 printf '%s' 'STRONG_KEYCLOAK_SECRET'    | docker secret create survey_keycloak_client_secret -
 printf '%s' 'STRONG_SPAM_SECRET'        | docker secret create survey_spam_secret -
+printf '%s' 'STRONG_EMAIL_CODE_SECRET'  | docker secret create survey_email_code_secret -
 ```
 
 ### 3. Configure non-secret variables
