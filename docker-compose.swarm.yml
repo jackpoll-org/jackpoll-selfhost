@@ -98,7 +98,7 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_TLS: ${MAIL_TLS:-DISABLED}
       MAIL_MOCK: "false"
-      MAIL_FROM: ${MAIL_FROM:-Survey School <noreply@surveyschool.test>}
+      MAIL_FROM: ${MAIL_FROM:-Jackpoll <noreply@jackpoll.test>}
       APP_BASE_URL: ${APP_BASE_URL:-https://app.jackpoll.org}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://app.jackpoll.org}
       # Open-source Supporters (tiered sponsorship) — the only payment surface.
