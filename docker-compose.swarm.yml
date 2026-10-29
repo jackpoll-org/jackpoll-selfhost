@@ -215,7 +215,7 @@ services:
         constraints: [node.role == manager] # pin stateful services to a stable node
 
   minio:
-    image: quay.io/minio/minio:latest
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
