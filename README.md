@@ -52,7 +52,7 @@ your own domain and TLS, is in **[SELF_HOSTING.md](SELF_HOSTING.md)**.
 | frontend | `ghcr.io/jackpoll-org/frontend` | Next.js web app |
 | backend | `ghcr.io/jackpoll-org/backend` | Quarkus REST API |
 | postgres | `postgres:16-alpine` | Primary datastore |
-| minio | `minio/minio` | File / image uploads (S3) |
+| minio | `pgsty/minio` (community MinIO build) | File / image uploads (S3) |
 | keycloak | `quay.io/keycloak/keycloak:26.2` | Authentication (OIDC) |
 | redis | `redis:7-alpine` | Distributed rate limiting |
 | mailpit | `axllent/mailpit` | Dev email capture (swap for real SMTP) |
