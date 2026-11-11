@@ -156,8 +156,9 @@ docker stack services survey
 
 - **Realm changes:** Swarm configs are immutable. When
   `keycloak/survey-school-realm.json` changes, bump the config key
-  (`keycloak_realm_v2` → `_v3`) in the stack file, or the deploy fails with
-  *"only updates to Labels are allowed"*.
+  (`keycloak_realm_v3` → `_v4`) in the stack file, or the deploy fails with
+  *"only updates to Labels are allowed"*. The realm sync workflow bumps it for
+  you whenever it pulls a realm change.
 - **WebSockets:** the stack exposes `/collab-ws` (live co-editing) and
   `/results-ws` (live results) as dedicated Traefik routers at priority 100 so
   they aren't shadowed by the frontend catch-all. Keep those labels intact.

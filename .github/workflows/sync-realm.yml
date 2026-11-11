@@ -40,5 +40,8 @@ jobs:
             echo "Realm already in sync."
             exit 0
           fi
+          n=$(grep -oE 'keycloak_realm_v[0-9]+' docker-compose.swarm.yml | head -1 | grep -oE '[0-9]+$')
+          sed -i "s/keycloak_realm_v$n/keycloak_realm_v$((n + 1))/g" docker-compose.swarm.yml
+          git add docker-compose.swarm.yml
           git commit -m "chore: sync Keycloak realm from jackpoll backend"
           git push
