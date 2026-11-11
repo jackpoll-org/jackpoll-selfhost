@@ -3,10 +3,7 @@ name: Sync Keycloak realm
 # Keeps keycloak/survey-school-realm.json in sync with the source-of-truth copy
 # in the jackpoll monorepo (apps/backend). Runs on a schedule and on manual
 # dispatch; opens a PR here whenever the backend realm changes.
-#
-# SETUP: add a repository secret `BACKEND_REPO_TOKEN` — a fine-grained PAT with
-# read access to jackpoll-org/jackpoll (contents: read). Without it the checkout
-# of a private repo will fail.
+# jackpoll-org/jackpoll is public, so the default token can read it.
 
 on:
   workflow_dispatch:
@@ -22,13 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout selfhost repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Checkout backend realm
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: jackpoll-org/jackpoll
-          token: ${{ secrets.BACKEND_REPO_TOKEN }}
           path: .monorepo
           sparse-checkout: apps/backend/src/main/keycloak/survey-school-realm.json
           sparse-checkout-cone-mode: false
@@ -37,7 +33,7 @@ jobs:
         run: cp .monorepo/apps/backend/src/main/keycloak/survey-school-realm.json keycloak/survey-school-realm.json
 
       - name: Open PR on change
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
           add-paths: keycloak/survey-school-realm.json
           branch: chore/sync-realm
