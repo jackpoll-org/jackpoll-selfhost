@@ -194,6 +194,33 @@ startup (Flyway).
 - **MinIO** — the `miniodata` volume holds uploaded images/files. Back up the
   volume or mirror the bucket with `mc mirror`.
 
+## Legal notice and privacy policy
+
+If your instance is public, you usually have to publish who runs it (an
+Impressum in Germany) and how it processes personal data. Jackpoll serves
+`/impressum`, `/privacy` and `/terms` for you; you only provide the text.
+Nothing is shown until you configure it.
+
+Per page, set an external page **or** a Markdown file in `.env`:
+
+| Page | External page | Markdown file |
+|---|---|---|
+| Legal notice / Impressum | `LEGAL_IMPRINT_URL` | `LEGAL_IMPRINT_FILE` |
+| Privacy policy | `LEGAL_PRIVACY_URL` | `LEGAL_PRIVACY_FILE` |
+| Terms of use (optional) | `LEGAL_TERMS_URL` | `LEGAL_TERMS_FILE` |
+
+`LEGAL_ENTITY` sets the operator name in the footer.
+
+- **Path A:** put your files in `./legal` (mounted read-only at `/legal`), for
+  example `LEGAL_IMPRINT_FILE=/legal/imprint.md`, then
+  `docker compose -f docker-compose.simple.yml up -d` to apply.
+- **Path B:** external URLs work as is. For files, mount them into the frontend
+  service on every node (bind mount or a swarm config) and point `*_FILE` there.
+
+Links then appear on login and registration, in the sidebar, and on shared and
+embedded surveys, also without JavaScript. Details:
+[docs/self-hosting-legal.md](https://github.com/jackpoll-org/jackpoll/blob/master/docs/self-hosting-legal.md).
+
 ## Push notifications (UnifiedPush / ntfy)
 
 The mobile app receives push through **UnifiedPush**, and this stack bundles an
