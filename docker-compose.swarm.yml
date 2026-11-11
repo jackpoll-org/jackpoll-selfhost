@@ -40,6 +40,14 @@ services:
       # Live-results push (wordcloud / presentation) — on by default; set false
       # to disable the /results-ws socket and fall back to 15s polling.
       LIVE_RESULTS_ENABLED: ${LIVE_RESULTS_ENABLED:-true}
+      # Legal notice / privacy policy / terms — see SELF_HOSTING.md.
+      LEGAL_IMPRINT_URL: ${LEGAL_IMPRINT_URL:-}
+      LEGAL_IMPRINT_FILE: ${LEGAL_IMPRINT_FILE:-}
+      LEGAL_PRIVACY_URL: ${LEGAL_PRIVACY_URL:-}
+      LEGAL_PRIVACY_FILE: ${LEGAL_PRIVACY_FILE:-}
+      LEGAL_TERMS_URL: ${LEGAL_TERMS_URL:-}
+      LEGAL_TERMS_FILE: ${LEGAL_TERMS_FILE:-}
+      LEGAL_ENTITY: ${LEGAL_ENTITY:-}
     networks: [traefik, internal]
     deploy:
       mode: replicated

@@ -29,6 +29,16 @@ services:
       NEXT_PUBLIC_API_URL: http://backend:8080
       COLLAB_ENABLED: ${COLLAB_ENABLED:-false}
       LIVE_RESULTS_ENABLED: ${LIVE_RESULTS_ENABLED:-true}
+      # Legal notice / privacy policy / terms — see SELF_HOSTING.md.
+      LEGAL_IMPRINT_URL: ${LEGAL_IMPRINT_URL:-}
+      LEGAL_IMPRINT_FILE: ${LEGAL_IMPRINT_FILE:-}
+      LEGAL_PRIVACY_URL: ${LEGAL_PRIVACY_URL:-}
+      LEGAL_PRIVACY_FILE: ${LEGAL_PRIVACY_FILE:-}
+      LEGAL_TERMS_URL: ${LEGAL_TERMS_URL:-}
+      LEGAL_TERMS_FILE: ${LEGAL_TERMS_FILE:-}
+      LEGAL_ENTITY: ${LEGAL_ENTITY:-}
+    volumes:
+      - ./legal:/legal:ro
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
