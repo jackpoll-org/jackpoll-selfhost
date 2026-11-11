@@ -195,6 +195,35 @@ startup (Flyway).
 - **MinIO** — the `miniodata` volume holds uploaded images/files. Back up the
   volume or mirror the bucket with `mc mirror`.
 
+## Closing public registration
+
+By default anyone can create an account on your instance. For a single-publisher
+setup, where only you create surveys and everyone else just answers them, set in
+`.env`:
+
+```env
+ALLOW_PUBLIC_REGISTRATION=false
+```
+
+and restart the stack. The frontend picks the change up within a minute. Then:
+
+- **Sign-ups are rejected by the backend** (`403`), not just hidden. `/register`
+  shows a short notice instead of the form, and the "Sign up" links disappear.
+- **Keycloak alone is not enough.** Jackpoll creates accounts through Keycloak's
+  admin API, which ignores the realm's "User registration" switch. The bundled
+  realm already has registration turned off, so `ALLOW_PUBLIC_REGISTRATION` is
+  the setting that matters.
+- **Existing accounts keep working.** To add someone later, create the user in the
+  Keycloak admin console (your realm, `survey-school` by default, *Users → Add
+  user*): use their email as username and email, fill in **first and last name**,
+  turn **Email verified** on, then set a password under *Credentials* with
+  **Temporary** turned off. They can log in to Jackpoll right away.
+- **Accounts that were never verified stay inactive.** With registration closed,
+  Jackpoll no longer sends or accepts verification codes, so only accounts you
+  verified (or that were verified before) can sign in.
+- **Respondents need no account.** Published surveys, share links, embeds and
+  access codes work exactly as before.
+
 ## Legal notice and privacy policy
 
 If your instance is public, you usually have to publish who runs it (an
