@@ -2,11 +2,8 @@ name: Sync Keycloak realm
 
 # Keeps keycloak/survey-school-realm.json in sync with the source-of-truth copy
 # in the jackpoll monorepo (apps/backend). Runs on a schedule and on manual
-# dispatch; opens a PR here whenever the backend realm changes.
-#
-# SETUP: add a repository secret `BACKEND_REPO_TOKEN` — a fine-grained PAT with
-# read access to jackpoll-org/jackpoll (contents: read). Without it the checkout
-# of a private repo will fail.
+# dispatch; commits to master whenever the backend realm changes.
+# jackpoll-org/jackpoll is public, so the default token can read it.
 
 on:
   workflow_dispatch:
@@ -15,20 +12,18 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout selfhost repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Checkout backend realm
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: jackpoll-org/jackpoll
-          token: ${{ secrets.BACKEND_REPO_TOKEN }}
           path: .monorepo
           sparse-checkout: apps/backend/src/main/keycloak/survey-school-realm.json
           sparse-checkout-cone-mode: false
@@ -36,14 +31,14 @@ jobs:
       - name: Copy realm
         run: cp .monorepo/apps/backend/src/main/keycloak/survey-school-realm.json keycloak/survey-school-realm.json
 
-      - name: Open PR on change
-        uses: peter-evans/create-pull-request@v6
-        with:
-          add-paths: keycloak/survey-school-realm.json
-          branch: chore/sync-realm
-          title: "chore: sync Keycloak realm from jackpoll backend"
-          commit-message: "chore: sync Keycloak realm from jackpoll backend"
-          body: |
-            Automated sync of `keycloak/survey-school-realm.json` from
-            `jackpoll-org/jackpoll` (`apps/backend/src/main/keycloak`).
-          delete-branch: true
+      - name: Commit & push if changed
+        run: |
+          git config user.name "Leopold"
+          git config user.email "77323443+MadebyLeopold@users.noreply.github.com"
+          git add keycloak/survey-school-realm.json
+          if git diff --cached --quiet; then
+            echo "Realm already in sync."
+            exit 0
+          fi
+          git commit -m "chore: sync Keycloak realm from jackpoll backend"
+          git push
