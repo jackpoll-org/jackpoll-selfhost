@@ -281,7 +281,7 @@ services:
     # The realm is imported from this Docker config on first boot. The file name
     # MUST match the realm ("<realm>-realm.json").
     configs:
-      - source: keycloak_realm_v2
+      - source: keycloak_realm_v3
         target: /opt/keycloak/data/import/survey-school-realm.json
     deploy:
       replicas: 1
@@ -374,7 +374,7 @@ configs:
   # Swarm configs are immutable — bump the key (…_v2, _v3) whenever the realm
   # file changes, otherwise `docker stack deploy` fails with
   # "only updates to Labels are allowed".
-  keycloak_realm_v2:
+  keycloak_realm_v3:
     # Realm source-of-truth is the jackpoll monorepo (apps/backend/src/main/keycloak);
     # this repo keeps a synced copy under ./keycloak (see .github/workflows/sync-realm.yml).
     file: ./keycloak/survey-school-realm.json
