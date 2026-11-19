@@ -137,7 +137,7 @@ services:
     networks: [internal]
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.2
+    image: quay.io/keycloak/keycloak:26.8.2
     restart: *restart
     # Dev-mode server for a single host: HTTP only + realm import. For a public
     # HTTPS deployment use the Swarm stack (production mode behind Traefik).

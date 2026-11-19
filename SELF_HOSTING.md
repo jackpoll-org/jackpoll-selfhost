@@ -156,7 +156,7 @@ docker stack services survey
 
 - **Realm changes:** Swarm configs are immutable. When
   `keycloak/survey-school-realm.json` changes, bump the config key
-  (`keycloak_realm_v3` → `_v4`) in the stack file, or the deploy fails with
+  (`keycloak_realm_v4` → `_v5`) in the stack file, or the deploy fails with
   *"only updates to Labels are allowed"*. The realm sync workflow bumps it for
   you whenever it pulls a realm change.
 - **WebSockets:** the stack exposes `/collab-ws` (live co-editing) and
@@ -184,6 +184,37 @@ docker service update --image ghcr.io/jackpoll-org/frontend:<tag> survey_fronten
 Pin `FRONTEND_IMAGE` / `BACKEND_IMAGE` to a release tag (not `:latest`) for
 reproducible deploys. Database schema migrations run automatically on backend
 startup (Flyway).
+
+### Keycloak 26.8.2 (security update)
+
+Keycloak 26.8.2 ships the Java fix for **Java4Shell (CVE-2026-114938)**, a
+pre-authentication remote code execution on x86-64 CPUs with AVX-512 (most
+current AMD EPYC and Intel Xeon servers). Update to the stack files in this
+repo, then:
+
+1. **Back up Postgres first** (see Backups). Keycloak migrates its tables on the
+   first start and cannot go back to the older version.
+2. Path A: `docker compose -f docker-compose.simple.yml up -d`.
+   Path B: `docker stack deploy -c docker-compose.swarm.yml survey` (the realm
+   config key is now `keycloak_realm_v4`).
+3. **Once, on existing installs:** Keycloak 26.8.2 only lets the backend use its
+   admin API with the `kc-admin-api` client scope. New installs import it with
+   the realm; an existing realm is not re-imported, so add it yourself, or
+   registration, password reset and user lookup fail with a 401. Admin console
+   → your realm → Clients → `survey-backend` → Client scopes → Add client scope
+   → `kc-admin-api` → Default; or run inside the Keycloak container
+   (`docker compose -f docker-compose.simple.yml exec keycloak bash`, or
+   `docker exec -it <keycloak container> bash` on Swarm):
+
+   ```bash
+   K=/opt/keycloak/bin/kcadm.sh
+   $K config credentials --server http://localhost:8080 --realm master --user admin
+   CID=$($K get clients -r survey-school -q clientId=survey-backend --fields id --format csv --noquotes)
+   SID=$($K get client-scopes -r survey-school --fields id,name --format csv --noquotes | grep ',kc-admin-api$' | cut -d, -f1)
+   $K update clients/$CID/default-client-scopes/$SID -r survey-school
+   ```
+
+   `kcadm` asks for your `KEYCLOAK_ADMIN_PASSWORD`.
 
 ## Backups
 
